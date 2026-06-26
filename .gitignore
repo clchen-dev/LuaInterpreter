@@ -1,0 +1,14 @@
+# Build and test output
+/bin/
+/dist/
+/coverage.out
+*.prof
+
+# Local tooling
+/.graphify/
+/.idea/
+/.vscode/
+.DS_Store
+
+# Legacy interpreter output
+/my_luac.out

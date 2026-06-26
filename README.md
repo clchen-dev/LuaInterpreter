@@ -1,148 +1,184 @@
-<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
-<a name="readme-top"></a>
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Don't forget to give the project a star!
-*** Thanks again! Now go create something AMAZING! :D
--->
-
-<!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
-
-
-<!-- PROJECT LOGO -->
-<br />
 <div align="center">
-  <a href="https://github.com/ccl2020/LuaInterpreter">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>
+  <img src="images/logo.png" alt="LuaInterpreter logo" width="96">
 
-  <h3 align="center">Lua interpreter in Go</h3>
+  # LuaInterpreter
 
-  <p align="center">
-    A lua interpreter implemented by Go, only for personal learning purpose
-    <br />
-    <a href="https://github.com/ccl2020/LuaInterpreter"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/ccl2020/LuaInterpreter">View Demo</a>
-    ·
-    <a href="https://github.com/ccl2020/LuaInterpreter/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/ccl2020/LuaInterpreter/issues">Request Feature</a>
-  </p>
+  A compact Lua 5.3 interpreter written in Go.
+
+  [![CI](https://github.com/clchen-dev/LuaInterpreter/actions/workflows/ci.yml/badge.svg)](https://github.com/clchen-dev/LuaInterpreter/actions/workflows/ci.yml)
+  [![Go version](https://img.shields.io/badge/Go-1.24%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+  [![License](https://img.shields.io/github/license/clchen-dev/LuaInterpreter)](LICENSE.txt)
 </div>
 
+LuaInterpreter contains a lexer, parser, bytecode compiler, binary chunk
+reader/writer, virtual machine, runtime state, and a small standard-library
+subset. It is intended for learning and experimentation rather than as a
+drop-in replacement for the official Lua runtime.
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+## Features
 
-According to the grammar supported by Lua 5.3.5, this project implements a tiny but fully functional Lua language interpreter based on Go language. It contains two modules: the front-end compiler and the back-end virtual machine. The front-end compiler module implements the function of compiling Lua scripts into bytecodes, and the back-end virtual machine module implements the function of parsing and executing bytecodes.
+- Lua 5.3-style syntax, expressions, tables, functions, closures, varargs, and loops
+- Arithmetic, bitwise, comparison, table, call, and control-flow VM instructions
+- Metatables and common metamethods
+- `print`, `pairs`, `ipairs`, `next`, `pcall`, `error`, and metatable helpers
+- Lua binary chunk serialization and loading
+- Embeddable Go API with panic-to-error conversion
+- Automated tests, race detection, static analysis, and reproducible CI builds
 
-<!-- GETTING STARTED -->
-## Getting Started
+## Requirements
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+- Go 1.24 or newer
+- GNU Make is optional
 
-### Prerequisites
+The project has no third-party Go dependencies.
 
-Golang programming environment is required. [Install Golang](https://go.dev/doc/install)
+## Quick start
 
-<!-- USAGE EXAMPLES -->
-### Usage
-#### 1. Build
-Run the following commmand under 'src' folder :
+Clone and build the command-line interpreter:
+
+```bash
+git clone https://github.com/clchen-dev/LuaInterpreter.git
+cd LuaInterpreter
+go build -trimpath -o bin/luago ./cmd/luago
 ```
-go build 
+
+Run one of the included examples:
+
+```bash
+./bin/luago examples/test2.lua
 ```
-#### 2. Test
-Run the following commmand under 'src' folder :
+
+Expected output:
+
+```text
+false	2	0.5	true	-1	-2
 ```
-./luago/main  lua/test.lua
+
+The CLI accepts one Lua source file:
+
+```text
+Usage: luago [flags] <script.lua>
+  -version
+        print version information
 ```
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-<!-- ROADMAP -->
 
-## Roadmap
+## Development
 
-- [x] Add souce code
-- [x] Add Readme
+Run the complete local verification suite:
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+```bash
+make ci
+```
 
-<!-- CONTRIBUTING -->
+Or invoke each step directly:
+
+```bash
+go fmt ./...
+go vet ./...
+go test -race -cover ./...
+go build -trimpath -o bin/luago ./cmd/luago
+```
+
+Integration fixtures live in `interpreter/testdata`. Each `.lua` file has a
+matching `.golden` file containing its expected output.
+
+## Project structure
+
+```text
+.
+├── cmd/luago/              Command-line entry point
+├── examples/               Runnable Lua programs
+├── interpreter/            Embeddable execution API and integration tests
+│   └── testdata/           Lua fixtures and golden output
+├── internal/
+│   ├── api/                Lua state and VM interfaces
+│   ├── binchunk/           Lua 5.3 binary chunk reader and writer
+│   ├── compiler/
+│   │   ├── ast/            Abstract syntax tree
+│   │   ├── codegen/        AST-to-bytecode compiler
+│   │   ├── lexer/          Tokenizer
+│   │   └── parser/         Recursive-descent parser
+│   ├── number/             Lua numeric parsing and operations
+│   ├── state/              Stack, values, tables, closures, and runtime API
+│   ├── stdlib/             Built-in functions exposed to Lua
+│   └── vm/                 Bytecode instructions and opcode definitions
+├── .github/workflows/      Continuous integration
+├── go.mod
+└── Makefile
+```
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Source[Lua source] --> Lexer
+    Lexer --> Parser
+    Parser --> AST
+    AST --> Codegen
+    Codegen --> Prototype[Bytecode prototype]
+    Binary[Lua binary chunk] --> Reader[Binary chunk reader]
+    Reader --> Prototype
+    Prototype --> State[Runtime state]
+    State <--> VM[Virtual machine]
+    Stdlib[Standard library] --> State
+```
+
+The public `interpreter` package coordinates the pipeline. Compiler, VM, and
+runtime implementation details remain under `internal` so they can evolve
+without exposing unstable APIs.
+
+## Embedding
+
+Execute Lua from another Go package:
+
+```go
+package main
+
+import (
+	"os"
+
+	"github.com/clchen-dev/LuaInterpreter/interpreter"
+)
+
+func main() {
+	vm := interpreter.New(os.Stdout)
+	if err := vm.Execute([]byte(`print("hello from Lua")`), "example.lua"); err != nil {
+		panic(err)
+	}
+}
+```
+
+## Continuous integration
+
+The GitHub Actions workflow runs on pushes and pull requests. It:
+
+1. verifies formatting with `gofmt`;
+2. runs `go vet`;
+3. runs tests with the race detector and coverage;
+4. builds and smoke-tests the CLI;
+5. cross-compiles Linux `amd64` and `arm64` binaries;
+6. uploads each compressed binary as a workflow artifact.
+
+Artifacts are available from the summary page of a completed
+[Actions run](https://github.com/clchen-dev/LuaInterpreter/actions/workflows/ci.yml).
+
+## Scope and limitations
+
+LuaInterpreter implements a useful Lua 5.3 subset, but compatibility is not
+complete. In particular, it does not include the full official Lua standard
+library or every language feature. Unsupported behavior should be treated as a
+project limitation rather than assumed to match the reference interpreter.
+
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+1. Create a focused branch.
+2. Add or update tests for behavioral changes.
+3. Run `make ci`.
+4. Open a pull request describing the change and its compatibility impact.
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
+Bug reports should include a minimal Lua program, expected output, actual
+output, Go version, and operating system.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## License
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- LICENSE -->
-## License 
-[![MIT License][license-shield]][license-url]
-
-Distributed under the MIT License. See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-<!-- CONTACT -->
-## Contact
-
-ChuanlongChen - chuanlongchen@gmail.com
-
-Project Link: [https://github.com/ccl2020/LuaInterpreter](https://github.com/ccl2020/LuaInterpreter)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
-[contributors-url]: https://github.com/ccl2020/LuaInterpreter/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
-[forks-url]: https://github.com/ccl2020/LuaInterpreter/network/members
-[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
-[stars-url]: https://github.com/ccl2020/LuaInterpreter/stargazers
-[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
-[issues-url]: https://github.com/ccl2020/LuaInterpreter/issues
-[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
-[license-url]: https://github.com/ccl2020/LuaInterpreter/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://www.linkedin.com/in/chuanlong-chen-086419212/
-[product-screenshot]: images/screenshot.png
-[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
-[Next-url]: https://nextjs.org/
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
-[Vue.js]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
-[Vue-url]: https://vuejs.org/
-[Angular.io]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
-[Angular-url]: https://angular.io/
-[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
-[Svelte-url]: https://svelte.dev/
-[Laravel.com]: https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white
-[Laravel-url]: https://laravel.com
-[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
-[Bootstrap-url]: https://getbootstrap.com
-[JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
-[JQuery-url]: https://jquery.com 
+Distributed under the MIT License. See [LICENSE.txt](LICENSE.txt).

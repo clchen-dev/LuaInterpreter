@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Verify formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Run static analysis
+        run: go vet ./...
+
+      - name: Run tests
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Build CLI
+        run: go build -trimpath -o bin/luago ./cmd/luago
+
+      - name: Smoke test CLI
+        shell: bash
+        run: |
+          actual="$(./bin/luago interpreter/testdata/arithmetic.lua)"
+          expected=$'12\n16'
+          test "$actual" = "$expected"
+
+  build:
+    name: Build Linux ${{ matrix.goarch }}
+    needs: test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        goarch:
+          - amd64
+          - arm64
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Build binary
+        env:
+          GOARCH: ${{ matrix.goarch }}
+          GOOS: linux
+          CGO_ENABLED: "0"
+        shell: bash
+        run: |
+          version="${GITHUB_SHA::12}"
+          package="luago-${GOOS}-${GOARCH}"
+          mkdir -p "dist/${package}"
+          go build \
+            -trimpath \
+            -ldflags="-s -w -X main.version=${version}" \
+            -o "dist/${package}/luago" \
+            ./cmd/luago
+          cp README.md LICENSE.txt "dist/${package}/"
+          tar -C dist -czf "dist/${package}.tar.gz" "${package}"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: luago-linux-${{ matrix.goarch }}
+          path: dist/luago-linux-${{ matrix.goarch }}.tar.gz
+          if-no-files-found: error
+          retention-days: 14
