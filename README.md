@@ -48,6 +48,13 @@ Run one of the included examples:
 ./bin/luago examples/test2.lua
 ```
 
+Or run the published container image:
+
+```bash
+docker run --rm ghcr.io/clchen-dev/luago:latest --version
+docker run --rm -v "$PWD/examples:/examples:ro" ghcr.io/clchen-dev/luago:latest /examples/test2.lua
+```
+
 Expected output:
 
 ```text
@@ -157,10 +164,20 @@ The GitHub Actions workflow runs on pushes and pull requests. It:
 3. runs tests with the race detector and coverage;
 4. builds and smoke-tests the CLI;
 5. cross-compiles Linux `amd64` and `arm64` binaries;
-6. uploads each compressed binary as a workflow artifact.
+6. uploads each compressed binary as a workflow artifact;
+7. publishes a multi-architecture Docker image to GitHub Container Registry.
 
 Artifacts are available from the summary page of a completed
 [Actions run](https://github.com/clchen-dev/LuaInterpreter/actions/workflows/ci.yml).
+
+Container images are published to:
+
+```text
+ghcr.io/clchen-dev/luago
+```
+
+Pushes to `main` publish `latest` and commit-SHA tags. Git tags such as
+`v0.1.0` publish the same version tag to the image repository.
 
 ## Scope and limitations
 

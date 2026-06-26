@@ -1,0 +1,9 @@
+.git
+.github
+bin
+dist
+pkg
+
+images
+
+**/.DS_Store
